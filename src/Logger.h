@@ -1,8 +1,8 @@
 /*
  * Logger.h
  *
- *  Created on: 15 Jun 2012
- *      Author: thomas
+ *  Created on: 17 Jan 2023
+ *      Author: luk
  */
 
 #ifndef LOGGER_H_
@@ -56,6 +56,7 @@ class Logger
 
         int lastWritten;
         boost::thread * writeThread;
+        boost::thread * dataThread;
         ThreadMutexObject<bool> writing;
         std::string filename;
 
@@ -66,6 +67,7 @@ class Logger
         void encodeJpeg(cv::Vec<unsigned char, 3> * rgb_data);
         void imageCallback(boost::shared_ptr<openni_wrapper::Image> image, void * cookie);
         void depthCallback(boost::shared_ptr<openni_wrapper::DepthImage> depth_image, void * cookie);
+        void readFrames();
 
         void writeData();
 };
