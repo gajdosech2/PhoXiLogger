@@ -1,0 +1,5 @@
+build/*
+.project
+src/.idea/
+src/cmake-build-debug/
+src/cmake-build-release/
