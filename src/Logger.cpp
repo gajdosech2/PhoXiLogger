@@ -105,10 +105,10 @@ void Logger::readFrames()
         cv::Mat color = cv::imread("pngs/scan_" + std::string(str) + "_IMG_Texture_8Bit.png", cv::IMREAD_ANYCOLOR | cv::IMREAD_ANYDEPTH);
 
         cv::Mat resized;
-        cv::resize(image, resized, cv::Size(672, 480), cv::INTER_LINEAR);
+        cv::resize(image, resized, cv::Size(672, 480), cv::INTER_NEAREST);
 
         cv::Mat photo;
-        cv::resize(color, photo, cv::Size(672, 480), cv::INTER_LINEAR);
+        cv::resize(color, photo, cv::Size(672, 480), cv::INTER_NEAREST);
 
         cv::Rect crop_region(16, 0, 640, 480);
         cv::Mat resizedRef = resized(crop_region);
@@ -318,7 +318,7 @@ void Logger::writeData()
                                              &compressed_size,
                                              (const Bytef*)frameBuffers[bufferIndex].first.first,
                                              640 * 480 * sizeof(short),
-                                             Z_BEST_SPEED));
+                                             Z_NO_COMPRESSION));
 
         threads.add_thread(new boost::thread(boost::bind(&Logger::encodeJpeg,
                                                          this,
