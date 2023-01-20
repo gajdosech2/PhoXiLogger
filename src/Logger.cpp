@@ -85,12 +85,12 @@ void Logger::setupDevice(const std::string & deviceId)
 
 void Logger::readFrames()
 {
-    boost::filesystem::path the_path( "data" );
+    boost::filesystem::path the_path( "pngs" );
 
     int count = std::count_if(
             boost::filesystem::directory_iterator(the_path),
             boost::filesystem::directory_iterator(),
-            static_cast<bool(*)(const boost::filesystem::path&)>(boost::filesystem::is_regular_file) );
+            static_cast<bool(*)(const boost::filesystem::path&)>(boost::filesystem::is_regular_file) ) / 2;
 
     std::cout << count << std::endl;
 
@@ -101,10 +101,20 @@ void Logger::readFrames()
         char str[5];
         snprintf (str, 5, "%04d", i);
         std::cout << std::string(str) << std::endl;
-        cv::Mat image = cv::imread("data/scan_" + std::string(str) + ".png", cv::IMREAD_ANYCOLOR | cv::IMREAD_ANYDEPTH);
+        cv::Mat image = cv::imread("pngs/scan_" + std::string(str) + ".png", cv::IMREAD_ANYCOLOR | cv::IMREAD_ANYDEPTH);
+        cv::Mat color = cv::imread("pngs/scan_" + std::string(str) + "_IMG_Texture_8Bit.png", cv::IMREAD_ANYCOLOR | cv::IMREAD_ANYDEPTH);
 
         cv::Mat resized;
-        cv::resize(image, resized, cv::Size(640, 480), cv::INTER_LINEAR);
+        cv::resize(image, resized, cv::Size(672, 480), cv::INTER_LINEAR);
+
+        cv::Mat photo;
+        cv::resize(color, photo, cv::Size(672, 480), cv::INTER_LINEAR);
+
+        cv::Rect crop_region(16, 0, 640, 480);
+        cv::Mat resizedRef = resized(crop_region);
+        resizedRef.copyTo(resized);
+        cv::Mat photoRef = photo(crop_region);
+        photoRef.copyTo(photo);
 
         cv::Mat texture;
         cv::Mat depth;
@@ -113,22 +123,29 @@ void Logger::readFrames()
         cv::extractChannel(resized, depth, 2);
         cv::extractChannel(resized, other, 1);
 
-        cv::Mat triple;
-        std::vector<cv::Mat> channels;
-        channels.push_back(texture);
-        channels.push_back(texture);
-        channels.push_back(texture);
-        cv::merge(channels, triple);
-
         //other = 256 - other;
         //depth = 256 - depth;
         //other.setTo(0, other == 255);
         //depth.setTo(0, depth == 255);
-        cv::Mat ddepth;
-        std::vector<cv::Mat> cchannels;
-        cchannels.push_back(other);
-        cchannels.push_back(depth);
-        cv::merge(cchannels, ddepth);
+        cv::Mat combined;
+        std::vector<cv::Mat> stacked;
+        stacked.push_back(other);
+        stacked.push_back(depth);
+        cv::merge(stacked, combined);
+
+        cv::Mat triple;
+        cv::Mat blue;
+        cv::Mat green;
+        cv::Mat red;
+        cv::extractChannel(photo, blue, 0);
+        cv::extractChannel(photo, green, 1);
+        cv::extractChannel(photo, red, 2);
+
+        std::vector<cv::Mat> channels;
+        channels.push_back(red);
+        channels.push_back(green);
+        channels.push_back(blue);
+        cv::merge(channels, triple);
 
         //std::cout << triple.channels() << std::endl;
         //std::cout << triple.cols << std::endl;
@@ -150,7 +167,7 @@ void Logger::readFrames()
         int depthBufferIndex = (latestDepthIndex.getValue() + 1) % 10;
 
         //frameBuffers[depthBufferIndex].first.first = depth.data;
-        memcpy(frameBuffers[depthBufferIndex].first.first, ddepth.data, 640 * 480 * 2);
+        memcpy(frameBuffers[depthBufferIndex].first.first, combined.data, 640 * 480 * 2);
         frameBuffers[depthBufferIndex].second = m_lastDepthTime;
 
         int lastImageVal = latestImageIndex.getValue();
